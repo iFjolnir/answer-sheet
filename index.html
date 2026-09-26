@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TOPIK 채점</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#FFFFFF; --side:#F3F1EC; --sheet:#FBF7EE; --rule:#E6DECE; --rule-strong:#CBBFA8;
+  --ink:#1C1C1E; --dim:#ABA79F; --muted:#77736B; --fix:#D63F66; --soft:#EFE8DA;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#141415; --side:#1B1B1C; --sheet:#1F1D19; --rule:#34302A; --rule-strong:#4D463B;
+    --ink:#EDEBE6; --dim:#66625B; --muted:#9A968E; --fix:#F07A97; --soft:#2B2823;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141415; --side:#1B1B1C; --sheet:#1F1D19; --rule:#34302A; --rule-strong:#4D463B;
+  --ink:#EDEBE6; --dim:#66625B; --muted:#9A968E; --fix:#F07A97; --soft:#2B2823;
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 110px)}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Gothic A1",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;line-height:1.45}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+.app{display:grid;grid-template-columns:250px 1fr;min-height:100%}
+.side{background:var(--side);border-right:1px solid var(--rule);position:sticky;top:0;
+  height:100vh;height:100dvh;overflow-y:auto;padding:20px 14px}
+.brand{font-weight:800;font-size:1.05rem;margin:0 4px 14px}
+.new{width:100%;background:var(--ink);color:var(--bg);border:0;border-radius:8px;padding:10px;font-weight:600}
+.stack{display:flex;flex-direction:column;gap:6px;margin-top:16px}
+.item{text-align:left;background:transparent;border:1px solid transparent;border-radius:8px;padding:10px 10px 9px;width:100%}
+.item:hover{background:var(--soft)}
+.item.on{background:var(--sheet);border-color:var(--rule-strong)}
+.item b{display:block;font-weight:800;font-size:.95rem}
+.item span{font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.prog{height:3px;background:var(--rule);border-radius:2px;margin-top:7px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--ink)}
+.empty{font-size:.82rem;color:var(--muted);margin:4px}
+
+main{min-width:0;padding:0 20px 56px}
+.col{max-width:480px;margin:0 auto}
+
+/* setup */
+.setup h1{font-size:1.4rem;font-weight:800;margin:28px 0 20px}
+.field{margin-bottom:18px}
+.field > label,.field > .lbl{display:block;font-weight:600;font-size:.9rem;margin-bottom:6px}
+.num-in{width:120px;padding:9px 10px;border:1px solid var(--rule-strong);border-radius:8px;background:var(--bg)}
+.seg{display:inline-flex;border:1px solid var(--rule-strong);border-radius:8px;overflow:hidden}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{padding:8px 16px;cursor:pointer;font-size:.92rem;border-left:1px solid var(--rule-strong)}
+.seg label:first-of-type{border-left:0}
+.seg input:checked + label{background:var(--ink);color:var(--bg)}
+.seg input:focus-visible + label{outline:2px solid var(--ink);outline-offset:-3px}
+.idline{font-size:.88rem;color:var(--muted);margin:-4px 0 18px}
+.idline code{font-family:inherit;font-weight:800;color:var(--ink)}
+.exists{background:var(--sheet);border:1px solid var(--rule-strong);border-radius:8px;padding:12px;font-size:.88rem;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.btn{background:transparent;border:1px solid var(--rule-strong);border-radius:8px;padding:7px 12px;font-size:.85rem}
+.btn:hover{background:var(--soft)}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink);padding:11px 18px;font-weight:600;font-size:.95rem}
+.btn.primary:disabled{opacity:.35;cursor:not-allowed}
+details{border:1px solid var(--rule);border-radius:8px;padding:10px 12px;margin-bottom:12px}
+summary{cursor:pointer;font-size:.88rem;font-weight:600}
+pre.prompt{white-space:pre-wrap;font-family:inherit;font-size:.82rem;background:var(--sheet);border-radius:6px;padding:10px;margin:10px 0 8px;max-height:240px;overflow:auto}
+textarea{width:100%;min-height:110px;padding:10px;border:1px solid var(--rule-strong);border-radius:8px;background:var(--bg);resize:vertical;font-size:.9rem}
+.parse{font-size:.84rem;margin:6px 2px 18px;min-height:1.2em;color:var(--muted)}
+.parse.ok{color:var(--ink)}
+.parse.warn{color:var(--fix)}
+
+/* sheet */
+.top{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:2;padding:20px 0 12px;border-bottom:2px solid var(--ink)}
+.top h1{margin:0;font-size:1.25rem;font-weight:800}
+.bar{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-top:10px;flex-wrap:wrap}
+.score{font-size:2rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+.score span{font-size:.9rem;font-weight:600;color:var(--muted)}
+.tally{font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.acts{display:flex;gap:6px}
+.small{background:none;border:1px solid var(--rule-strong);border-radius:6px;padding:6px 10px;font-size:.8rem;color:var(--muted)}
+.small:hover{color:var(--ink)}
+.small.armed{background:var(--fix);border-color:var(--fix);color:#fff}
+
+.sheet{background:var(--sheet);border:1.5px solid var(--ink);border-top:0}
+.row{display:grid;grid-template-columns:46px 1fr 58px;align-items:center;min-height:52px;border-top:1px solid var(--rule)}
+.row:first-child{border-top:0}
+.row:nth-child(5n+1):not(:first-child){border-top-color:var(--rule-strong)}
+.num{text-align:center;font-weight:800;font-variant-numeric:tabular-nums;border-right:1px solid var(--rule);
+  align-self:stretch;display:flex;align-items:center;justify-content:center}
+.bubbles{display:flex;justify-content:space-around;padding:0 6px}
+.b{width:34px;height:22px;border-radius:50%;border:1.5px solid var(--rule-strong);background:transparent;
+  font-size:.72rem;font-weight:600;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:background .12s}
+.b:hover:not(:disabled){background:var(--soft);border-color:var(--ink);color:var(--ink)}
+.b:disabled{cursor:default}
+.b.right{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.b.miss{background:var(--dim);border-color:var(--dim);color:var(--bg)}
+.b.fix{background:var(--fix);border-color:var(--fix);color:#fff}
+.side-cell{border:0;border-left:1px solid var(--rule);align-self:stretch;background:none;font-size:.78rem;color:var(--muted);display:flex;align-items:center;justify-content:center}
+button.side-cell:hover{color:var(--ink)}
+.mk{font-weight:800;font-size:1.05rem}
+.mk.o{color:var(--ink)} .mk.x{color:var(--fix)}
+.done{margin:16px 2px 0;font-size:.9rem}
+
+@media (max-width:760px){
+  .app{grid-template-columns:1fr}
+  .side{position:static;height:auto;border-right:0;border-bottom:1px solid var(--rule);padding:14px 14px 12px}
+  .side-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .brand{margin:0}
+  .new{width:auto;padding:8px 12px}
+  .stack{flex-direction:row;overflow-x:auto;margin-top:12px;padding-bottom:2px}
+  .item{min-width:140px;flex:0 0 auto}
+  main{padding:0 14px 48px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="side-top">
+      <div class="brand">TOPIK 채점</div>
+      <button class="new" id="newBtn">+ 새 시험지</button>
+    </div>
+    <div class="stack" id="stack"></div>
+  </aside>
+  <main><div class="col" id="view"></div></main>
+</div>
+
+<script>
+const STORE="topik-sheets-v1";
+const TYPE={L:"듣기",R:"읽기"};
+const LEVEL={1:"I",2:"II"};
+const EXPECT={"1L":30,"1R":40,"2L":50,"2R":50};
+
+let db={sheets:{},current:null};
+try{const s=JSON.parse(localStorage.getItem(STORE));if(s&&s.sheets)db=s}catch(e){}
+const save=()=>{try{localStorage.setItem(STORE,JSON.stringify(db))}catch(e){}};
+
+const $=s=>document.querySelector(s);
+const view=$("#view");
+const mkId=(n,l,t)=>`${n}-${l}${t}`;
+const title=s=>`제${s.num}회 TOPIK ${LEVEL[s.level]} ${TYPE[s.type]}`;
+
+function stats(s){
+  let right=0,done=0,got=0,total=0;
+  s.key.forEach((k,i)=>{
+    const p=s.pts?s.pts[i]:1; total+=p;
+    const a=s.ans[i+1];
+    if(a!==undefined){done++; if(a===k){right++;got+=p}}
+  });
+  return {right,done,got,total,n:s.key.length};
+}
+function scoreText(s,st){
+  return s.pts?`${st.got}<span> / ${st.total}점</span>`:`${st.right}<span> / ${st.n}문항</span>`;
+}
+
+function twoTap(btn,label,armedLabel,action){
+  let armed=false,t;
+  btn.textContent=label;
+  btn.onclick=()=>{
+    if(!armed){armed=true;btn.textContent=armedLabel;btn.classList.add("armed");
+      t=setTimeout(()=>{armed=false;btn.textContent=label;btn.classList.remove("armed")},3000);return}
+    clearTimeout(t);action();
+  };
+}
+
+/* ---------- side stack ---------- */
+function renderStack(){
+  const el=$("#stack");el.innerHTML="";
+  const list=Object.values(db.sheets).sort((a,b)=>b.updated-a.updated);
+  if(!list.length){el.innerHTML='<p class="empty">아직 시험지가 없어요.</p>';return}
+  list.forEach(s=>{
+    const st=stats(s);
+    const b=document.createElement("button");
+    b.className="item"+(db.current===s.id?" on":"");
+    b.innerHTML=`<b>${s.num}회 ${LEVEL[s.level]} ${TYPE[s.type]}</b>
+      <span>${st.done}/${st.n} · ${s.pts?st.got+"점":st.right+"개 정답"}</span>
+      <div class="prog"><i style="width:${st.done/st.n*100}%"></i></div>`;
+    b.onclick=()=>open(s.id);
+    el.appendChild(b);
+  });
+}
+
+/* ---------- parsing ---------- */
+function parse(text){
+  const t=text.replace(/[①②③④]/g,m=>"①②③④".indexOf(m)+1);
+  const a=t.match(/ANS\s*:\s*([^\n]*)/i), p=t.match(/PTS\s*:\s*([^\n]*)/i);
+  const key=((a?a[1]:t).match(/[1-4]/g)||[]).map(Number);
+  let pts=p?(p[1].match(/\d/g)||[]).map(Number):null;
+  let ptsBad=false;
+  if(pts&&pts.length!==key.length){ptsBad=true;pts=null}
+  return {key,pts,ptsBad,hadPts:!!p};
+}
+
+function promptText(level,type,n){
+  return `Attached is an official TOPIK answer key (정답표). Read only the ${TYPE[type]} section for TOPIK ${LEVEL[level]}.
+
+For every question number in order, from 1 to the last question, write the correct answer as a single digit (① = 1, ② = 2, ③ = 3, ④ = 4). Also write the 배점 (points) for each question in the same order.
+
+Reply with exactly these two lines and nothing else:
+ANS: <answers, digits only, no spaces>
+PTS: <points, digits only, no spaces>
+
+Before replying, check your work: both lines must have exactly ${n} digits, with no question skipped or repeated. The key is usually laid out in two or more columns (for example 1–25 on the left, 26–50 on the right) — read each column top to bottom before moving to the next. If any mark is unclear, look at the image again rather than guessing.`;
+}
+
+/* ---------- setup view ---------- */
+function renderSetup(){
+  db.current=null;save();renderStack();
+  view.className="col setup";
+  view.innerHTML=`
+    <h1>새 시험지</h1>
+    <div class="field"><label for="num">회차</label>
+      <input class="num-in" id="num" type="number" inputmode="numeric" min="1" placeholder="91"></div>
+    <div class="field"><span class="lbl">등급</span>
+      <div class="seg">
+        <input type="radio" name="lv" id="lv1" value="1"><label for="lv1">TOPIK I</label>
+        <input type="radio" name="lv" id="lv2" value="2" checked><label for="lv2">TOPIK II</label>
+      </div></div>
+    <div class="field"><span class="lbl">영역</span>
+      <div class="seg">
+        <input type="radio" name="ty" id="tyL" value="L"><label for="tyL">듣기</label>
+        <input type="radio" name="ty" id="tyR" value="R" checked><label for="tyR">읽기</label>
+      </div></div>
+    <p class="idline" id="idline"></p>
+    <div id="existsBox"></div>
+    <details id="promptBox"><summary>정답표 읽기용 AI 프롬프트</summary>
+      <pre class="prompt" id="promptPre"></pre>
+      <button class="btn" id="copyBtn">프롬프트 복사</button>
+    </details>
+    <div class="field"><label for="paste">정답 붙여넣기</label>
+      <textarea id="paste" placeholder="ANS: 4414231142322321313414131...&#10;PTS: 2222222222..."></textarea>
+      <div class="parse" id="parse"></div></div>
+    <button class="btn primary" id="create" disabled>시험지 만들기</button>`;
+
+  const num=$("#num"),paste=$("#paste"),create=$("#create");
+  const lv=()=>+document.querySelector('input[name=lv]:checked').value;
+  const ty=()=>document.querySelector('input[name=ty]:checked').value;
+
+  function update(){
+    const n=num.value.trim(), l=lv(), t=ty(), exp=EXPECT[`${l}${t}`];
+    const id=n?mkId(n,l,t):null;
+    $("#idline").innerHTML=id?`ID <code>${id}</code> · ${exp}문항 예상`:"회차를 입력하면 ID가 만들어져요.";
+    $("#promptPre").textContent=promptText(l,t,exp);
+    const ex=id&&db.sheets[id];
+    $("#existsBox").innerHTML=ex?`<div class="exists"><span>이미 저장된 시험지예요. 새로 붙여넣으면 기록이 지워져요.</span><button class="btn" id="openEx">이어서 하기</button></div>`:"";
+    if(ex) $("#openEx").onclick=()=>open(id);
+
+    const pr=$("#parse"), r=parse(paste.value);
+    pr.className="parse";
+    if(!paste.value.trim()) pr.textContent="";
+    else if(!r.key.length){pr.textContent="정답을 찾지 못했어요. ANS: 줄을 확인해 주세요.";pr.classList.add("warn")}
+    else{
+      const bits=[`${r.key.length}문항 인식`];
+      if(r.pts) bits.push(`배점 포함 (총 ${r.pts.reduce((a,b)=>a+b,0)}점)`);
+      else if(r.ptsBad) bits.push("배점 개수가 안 맞아서 제외");
+      else bits.push("배점 없음 — 문항 수로 채점");
+      pr.textContent=bits.join(" · ");
+      pr.classList.add(r.key.length===exp&&!r.ptsBad?"ok":"warn");
+      if(r.key.length!==exp) pr.textContent+=` · ${exp}문항이어야 해요`;
+    }
+    create.disabled=!(id&&r.key.length);
+  }
+  [num,paste].forEach(e=>e.addEventListener("input",update));
+  document.querySelectorAll(".seg input").forEach(e=>e.addEventListener("change",update));
+
+  $("#copyBtn").onclick=async()=>{
+    const txt=$("#promptPre").textContent, b=$("#copyBtn");
+    try{await navigator.clipboard.writeText(txt)}
+    catch(e){const ta=document.createElement("textarea");ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand("copy")}catch(_){}ta.remove()}
+    b.textContent="복사됨";setTimeout(()=>b.textContent="프롬프트 복사",1500);
+  };
+
+  create.onclick=()=>{
+    const n=num.value.trim(), l=lv(), t=ty(), id=mkId(n,l,t), r=parse(paste.value);
+    db.sheets[id]={id,num:n,level:l,type:t,key:r.key,pts:r.pts,ans:{},created:Date.now(),updated:Date.now()};
+    save();open(id);
+  };
+  update();num.focus();
+}
+
+/* ---------- sheet view ---------- */
+function open(id){
+  const s=db.sheets[id]; if(!s) return renderSetup();
+  db.current=id;save();renderStack();
+  view.className="col";
+  view.innerHTML=`
+    <div class="top">
+      <h1>${title(s)}</h1>
+      <div class="bar">
+        <div class="score" id="score"></div>
+        <div class="tally" id="tally"></div>
+        <div class="acts"><button class="small" id="reset"></button><button class="small" id="del"></button></div>
+      </div>
+    </div>
+    <div class="sheet" id="sheet" role="list"></div>
+    <p class="done" id="done"></p>`;
+  twoTap($("#reset"),"처음부터","한 번 더 누르면 초기화",()=>{s.ans={};s.updated=Date.now();save();open(id);scrollTo(0,0)});
+  twoTap($("#del"),"삭제","한 번 더 누르면 삭제",()=>{delete db.sheets[id];save();renderSetup()});
+  drawRows(s);
+}
+
+function drawRows(s){
+  const sheet=$("#sheet");sheet.innerHTML="";
+  s.key.forEach((k,i)=>{
+    const q=i+1, a=s.ans[q];
+    const row=document.createElement("div");row.className="row";row.setAttribute("role","listitem");
+    row.innerHTML=`<div class="num">${q}</div><div class="bubbles"></div>`;
+    const bb=row.querySelector(".bubbles");
+    for(let c=1;c<=4;c++){
+      const b=document.createElement("button");
+      b.className="b";b.textContent=c;b.setAttribute("aria-label",`${q}번 ${c}번 선택`);
+      if(a!==undefined){
+        b.disabled=true;
+        if(a===c&&c===k) b.classList.add("right");
+        else if(a===c) b.classList.add("miss");
+        else if(c===k) b.classList.add("fix");
+      }
+      b.onclick=()=>mark(s,q,c);
+      bb.appendChild(b);
+    }
+    let cell;
+    if(a===undefined){cell=document.createElement("button");cell.textContent="보기";cell.onclick=()=>mark(s,q,0)}
+    else{cell=document.createElement("div");
+      cell.innerHTML=a===0?"확인":a===k?'<span class="mk o">○</span>':'<span class="mk x">✕</span>'}
+    cell.className="side-cell";
+    row.appendChild(cell);sheet.appendChild(row);
+  });
+  const st=stats(s);
+  $("#score").innerHTML=scoreText(s,st);
+  $("#tally").textContent=`${st.done} / ${st.n} 확인`;
+  $("#done").textContent=st.done===st.n?`끝! ${st.right}/${st.n} 정답${s.pts?` · ${st.got}점`:""}`:"";
+}
+
+function mark(s,q,c){
+  s.ans[q]=c;s.updated=Date.now();save();
+  drawRows(s);renderStack();
+}
+
+$("#newBtn").onclick=renderSetup;
+db.current&&db.sheets[db.current]?open(db.current):renderSetup();
+</script>
+</body>
+</html>
