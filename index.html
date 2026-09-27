@@ -1,35 +1,73 @@
 <!doctype html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>TOPIK 채점</title>
+<title>TOPIK Grader</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=add_2,check,delete,delete_forever,lock_reset,replay,share,visibility,visibility_lock&display=block" rel="stylesheet">
 <style>
+/* ═══════════════════════ TWEAK ME ═══════════════════════
+   Colours are written as light-dark(LIGHT, DARK):
+   the first value is used in light mode, the second in dark mode.
+   Which one shows follows the device's system setting.        */
 :root{
-  --bg:#FFFFFF; --side:#f9f9f984; --sheet:#f9f9f984; --rule:#e6e1d9; --rule-strong:#cdc8c0;
-  --ink:#232323; --dim:#959595; --muted:#797979; --fix:#D63F66; --soft:#ebebeb;
+  color-scheme: light dark;
+
+  /* surfaces */
+  --bg:          light-dark(#FFFFFF,         #232323);          /* page background */
+  --side:        light-dark(#f9f9f984,       #1c1c1c);          /* sidebar */
+  --sheet:       light-dark(#f9f9f984,       #1c1c1c);          /* answer-sheet paper */
+  --done:        light-dark(rgba(0,0,0,.035), rgba(0,0,0,.22)); /* shade on answered rows */
+  --soft:        light-dark(#ebebeb,         #303030);          /* hover fill */
+
+  /* lines */
+  --rule:        light-dark(#e6e6e6,         #2a2a2a);          /* thin row lines */
+  --rule-strong: light-dark(#cfcfcf,         #4c4c4c);          /* every-5th line, bubble outlines, frames */
+
+  /* text & marks */
+  --ink:         light-dark(#232323,         #ebebeb);          /* main text + correct answer fill */
+  --muted:       light-dark(#797979,         #9b9b9b);          /* secondary text */
+  --dim:         light-dark(#b8b8b8,         #565656);          /* your wrong answer fill */
+  --fix:         light-dark(#D63F66,         #D63F66);          /* the correct answer when you missed */
+  --on-fix:      #FFFFFF;                                       /* number inside a magenta bubble */
+  --peek:        light-dark(#d9d9d9,         #3b3b3b);          /* peek icon, before peeking */
+  --peek-hover:  light-dark(#232323,         #ebebeb);          /* peek icon on hover */
+  --peeked:      light-dark(#D63F66,         #D63F66);          /* peek icon, after peeking */
+
+  /* bubbles */
+  --bubble-w:      35px;   /* width */
+  --bubble-h:      30px;   /* height — set different from width for ovals */
+  --bubble-radius: 50%;    /* 50% = round/oval, e.g. 8px = rounded square, 0 = square */
+  --bubble-border: 0.8px;  /* outline thickness */
+  --bubble-text:   .75rem; /* number size */
+
+  /* question numbers (01, 02 …) */
+  --qnum-size:        0.8rem;  /* text size */
+  --qnum-weight:      600;   /* thickness, 100 (hairline) – 900 (black) */
+  --qnum-weight-done: 400;   /* thickness once answered */
+
+  /* ○ / ✕ marks */
+  --mark-size:     20px;   /* both marks share this size */
+  --mark-stroke:   2.4;    /* line thickness, same for both (1 = thin, 3.5 = heavy) */
+
+  /* icon buttons */
+  --icon-size:     19px;
+}
+/* ═════════════════════ end of tweaks ═════════════════════ */
+
+:root{
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
-}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){
-    --bg:#232323; --side:#1c1c1c; --sheet:#1c1c1c; --rule:#2a2a2a; --rule-strong:#4c4c4c;
-    --ink:#ebebeb; --dim:#676767; --muted:#9b9b9b; --fix:#D63F66; --soft:#303030;
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#141415; --side:#1c1c1c; --sheet:#1c1c1c; --rule:#2a2a2a; --rule-strong:#4c4c4c;
-  --ink:#ebebeb; --dim:#676767; --muted:#9b9b9b; --fix:#D63F66; --soft:#303030;
 }
 *,*::before,*::after{box-sizing:inherit}
 html,body{height:100%}
 html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 110px)}
 body{margin:0;background:var(--bg);color:var(--ink);
-  font-family:"Gothic A1",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;line-height:1.45}
+  font-family:"Noto Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;line-height:1.45}
 button,input,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--ink);outline-offset:2px}
@@ -40,11 +78,13 @@ button{cursor:pointer}
 .brand{font-weight:800;font-size:1.05rem;margin:0 4px 14px}
 .new{width:100%;background:var(--ink);color:var(--bg);border:0;border-radius:8px;padding:10px;font-weight:600}
 .stack{display:flex;flex-direction:column;gap:6px;margin-top:16px}
-.item{text-align:left;background:transparent;border:1px solid transparent;border-radius:8px;padding:10px 10px 9px;width:100%}
+.item{text-align:left;background:transparent;border:1px solid transparent;border-radius:10px;padding:11px 12px 10px;width:100%}
 .item:hover{background:var(--soft)}
-.item.on{background:var(--sheet);border-color:var(--rule-strong)}
-.item b{display:block;font-weight:800;font-size:.95rem}
-.item span{font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.item.on{border-color:var(--rule-strong);box-shadow:inset 3px 0 0 var(--ink)}
+.item .l1{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.item b{font-weight:600;font-size:0.8rem}
+.item .tag{font-size:.8rem;color:var(--muted);white-space:nowrap}
+.item .l2{display:block;font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:1px}
 .prog{height:3px;background:var(--rule);border-radius:2px;margin-top:7px;overflow:hidden}
 .prog i{display:block;height:100%;background:var(--ink)}
 .empty{font-size:.82rem;color:var(--muted);margin:4px}
@@ -80,35 +120,52 @@ textarea{width:100%;min-height:110px;padding:10px;border:1px solid var(--rule-st
 
 /* sheet */
 .top{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:2;padding:20px 0 12px;border-bottom:.8px solid var(--ink)}
-.top h1{margin:0;font-size:1.25rem;font-weight:800}
+.titlebar{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.top h1{margin:0;font-size:1.25rem;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bar{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-top:10px;flex-wrap:wrap}
 .score{font-size:2rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
 .score span{font-size:.9rem;font-weight:600;color:var(--muted)}
 .tally{font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
-.acts{display:flex;gap:6px}
-.small{background:none;border:1px solid var(--rule-strong);border-radius:6px;padding:6px 10px;font-size:.8rem;color:var(--muted)}
+.acts{display:flex;gap:6px;flex:0 0 auto}
+.small{white-space:nowrap;background:none;border:1px solid var(--rule-strong);border-radius:6px;padding:6px 10px;font-size:.8rem;color:var(--muted)}
 .small:hover{color:var(--ink)}
-.small.armed{background:var(--fix);border-color:var(--fix);color:#fff}
+.small.armed{background:var(--fix);border-color:var(--fix);color:var(--on-fix)}
 
 .sheet{background:var(--sheet);border:0.8px solid var(--ink);border-top:0}
-.row{display:grid;grid-template-columns:46px 1fr 58px;align-items:center;min-height:52px;border-top:1px solid var(--rule)}
+.row{display:grid;grid-template-columns:46px 1fr 58px;align-items:center;min-height:calc(var(--bubble-h) + 20px);border-top:1px solid var(--rule);transition:background .15s}
+.row.marked{background:var(--done)}
+.row.marked .num{color:var(--muted);font-weight:var(--qnum-weight-done)}
+.row.marked .b:not(.right):not(.miss):not(.fix){opacity:.55}
 .row:first-child{border-top:0}
 .row:nth-child(5n+1):not(:first-child){border-top-color:var(--rule-strong)}
-.num{text-align:center;font-weight:800;font-variant-numeric:tabular-nums;border-right:1px solid var(--rule);
+.num{text-align:center;font-size:var(--qnum-size);font-weight:var(--qnum-weight);font-variant-numeric:tabular-nums;border-right:1px solid var(--rule);
   align-self:stretch;display:flex;align-items:center;justify-content:center}
 .bubbles{display:flex;justify-content:space-around;padding:0 6px}
-.b{width:34px;height:22px;border-radius:50%;border:1.5px solid var(--rule-strong);background:transparent;
-  font-size:.72rem;font-weight:600;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:background .12s}
+.b{width:var(--bubble-w);height:var(--bubble-h);flex:0 0 var(--bubble-w);border-radius:var(--bubble-radius);border:var(--bubble-border) solid var(--rule-strong);background:transparent;
+  font-size:var(--bubble-text);font-weight:600;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:background .12s}
 .b:hover:not(:disabled){background:var(--soft);border-color:var(--ink);color:var(--ink)}
 .b:disabled{cursor:default}
 .b.right{background:var(--ink);border-color:var(--ink);color:var(--bg)}
 .b.miss{background:var(--dim);border-color:var(--dim);color:var(--bg)}
-.b.fix{background:var(--fix);border-color:var(--fix);color:#fff}
+.b.fix{background:var(--fix);border-color:var(--fix);color:var(--on-fix)}
 .side-cell{border:0;border-left:1px solid var(--rule);align-self:stretch;background:none;font-size:.78rem;color:var(--muted);display:flex;align-items:center;justify-content:center}
-button.side-cell:hover{color:var(--ink)}
-.mk{font-weight:800;font-size:1.05rem}
+button.side-cell{color:var(--peek)}
+button.side-cell:hover{color:var(--peek-hover)}
+.side-cell.peeked{color:var(--peeked)}
+.mk{width:var(--mark-size);height:var(--mark-size);display:block;fill:none;stroke:currentColor;stroke-width:var(--mark-stroke);stroke-linecap:round}
 .mk.o{color:var(--ink)} .mk.x{color:var(--fix)}
+.ms{font-family:"Material Symbols Outlined";font-weight:normal;font-style:normal;font-size:var(--icon-size);line-height:1;
+  display:inline-block;vertical-align:middle;letter-spacing:normal;text-transform:none;white-space:nowrap;direction:ltr;
+  -webkit-font-smoothing:antialiased;font-feature-settings:"liga";font-variation-settings:"FILL" 0,"wght" 400,"opsz" 20}
+.lbl-both .ms{margin-right:4px}
+.small.ico{padding:5px 7px;line-height:0}
+.new.ico{line-height:0;padding:8px}
+.new .ms{font-size:calc(var(--icon-size) + 3px)}
+.side-cell .ms{font-size:calc(var(--icon-size) + 1px)}
 .done{margin:16px 2px 0;font-size:.9rem}
+.import h1{font-size:1.4rem;font-weight:800;margin:28px 0 6px}
+.import p{color:var(--muted);font-size:.9rem;margin:0 0 18px}
+.import .row-btns{display:flex;gap:8px;flex-wrap:wrap}
 
 @media (max-width:760px){
   .app{grid-template-columns:1fr}
@@ -117,7 +174,7 @@ button.side-cell:hover{color:var(--ink)}
   .brand{margin:0}
   .new{width:auto;padding:8px 12px}
   .stack{flex-direction:row;overflow-x:auto;margin-top:12px;padding-bottom:2px}
-  .item{min-width:140px;flex:0 0 auto}
+  .item{width:auto;min-width:0;flex:0 0 calc(50% - 3px)}
   main{padding:0 14px 48px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -127,8 +184,8 @@ button.side-cell:hover{color:var(--ink)}
 <div class="app">
   <aside class="side">
     <div class="side-top">
-      <div class="brand">TOPIK 채점</div>
-      <button class="new" id="newBtn">+ 새 시험지</button>
+      <div class="brand" id="brand"></div>
+      <button class="new" id="newBtn"></button>
     </div>
     <div class="stack" id="stack"></div>
   </aside>
@@ -136,9 +193,96 @@ button.side-cell:hover{color:var(--ink)}
 </div>
 
 <script>
+/* ═══════════════════════ BUTTON STYLE ═══════════════════════
+   BUTTONS: "icon"  → icons only (text becomes the tooltip)
+            "text"  → words from the WORDING block below
+            "both"  → icon + words
+   ICONS: Google Material Symbols names. If you swap one, also add the new
+   name to the icon_names=… list in the <link> at the top (alphabetical). */
+const BUTTONS="icon";
+const ICONS={
+  newSheet:"add_2",
+  share:"share",          linkCopied:"check",      codeCopied:"check",
+  reset:"replay",         resetConfirm:"lock_reset",
+  del:"delete",           delConfirm:"delete_forever",
+  peek:"visibility",      peeked:"visibility_lock",
+};
+/* ═════════════════════ end of button style ═════════════════════ */
+
+/* ═══════════════════════ WORDING ═══════════════════════
+   Every piece of interface text lives here — swap any of it to English.
+   Plain entries:  key: "text",
+   Entries like    (a,b) => `...${a}...`  slot numbers in —
+   keep the ${...} bits, change the words around them.
+   Example:  reset: "처음부터",  →  reset: "Reset",               */
+const TEXT={
+  brand:        "TOPIK 채점",
+  newSheet:     "+",
+  emptyStack:   "No sheets yet.",
+
+  // exam names
+  level:        {1:"I", 2:"II"},
+  section:      {L:"듣기", R:"읽기"},                              // e.g. {L:"Listening", R:"Reading"}
+  title:        (num,lv,sec) => `${num}회 ${lv} · ${sec}`,           // sheet heading
+  cardNum:      (num)        => `${num}회`,                        // big label on sidebar cards
+  cardTag:      (lv,sec)     => `${lv} · ${sec}`,                  // small label on sidebar cards
+
+  // scores
+  scorePts:     (got,total)  => `${got}<span> / ${total}점</span>`,
+  scoreQs:      (right,n)    => `${right}<span> / ${n}문항</span>`,
+  tally:        (done,n)     => `${done} / ${n} 확인`,
+  cardLine:     (done,n,pts,right,hasPts) => `${done}/${n} · ${hasPts ? pts+"점" : right+"개 정답"}`,
+  finished:     (right,n,pts,hasPts)      => `끝! ${right}/${n} 정답${hasPts ? ` · ${pts}점` : ""}`,
+
+  // sheet buttons
+  share:        "Share sheet",
+  linkCopied:   "copied",
+  codeCopied:   "copied",
+  reset:        "Restart",
+  resetConfirm: "Erase sheet?",
+  del:          "Delete sheet",
+  delConfirm:   "Confirm delete",
+  peek:         "Peek answer",
+  peeked:       "Revealed",
+  shareTitle:   (t) => `${t} 채점지`,
+
+  // new sheet form
+  setupHeading: "New Exam Sheet",
+  examNo:       "Session",
+  levelLabel:   "Level",
+  sectionLabel: "Section",
+  idHint:       "Enter the session number to generate an ID.",
+  idLine:       (id,n) => `ID <code>${id}</code> · ${n} questions expected`,
+  exists:       "A similar sheet already exists. Creating a new one will overwrite it.",
+  continue:     "Continue",
+  promptToggle: "AI Prompt for reading an answer sheet",
+  copyPrompt:   "Copy Prompt",
+  copied:       "Copied",
+  pasteLabel:   "Paste Answers",
+  pasteHint:    "ANS: 4414231142322321313414131...\nPTS: 2222222222...\n\nYou can also paste shared codes or links",
+  noAnswers:    "No answers found. Please check the ANS: line.",
+  foundQs:      (n) => `${n} questions detected`,
+  withPts:      (t) => `Points included (total ${t} points)`,
+  ptsMismatch:  "The number of points doesn't match the number of questions, so points are excluded",
+  noPts:        "No points — scoring by question count",
+  shouldBe:     (n) => `${n} questions expected`,
+  create:       "Create",
+
+  // opening a shared link
+  sharedInfo:   (n,t) => `Shared grading sheet · ${n} questions${t ? ` · Total ${t} points` : ""}`,
+  sharedExists: "A similar sheet already exists.",
+  openExisting: "Open existing",
+  replace:      "Replace",
+  replaceConfirm:"Replace?",
+  addMine:      "Add as new",
+  cancel:       "Cancel",
+};
+/* ═════════════════════ end of wording ═════════════════════ */
+
+// Korean section names for the AI prompt — must match what's printed on the answer key
+const KO_SECTION={L:"듣기",R:"읽기"};
+
 const STORE="topik-sheets-v1";
-const TYPE={L:"듣기",R:"읽기"};
-const LEVEL={1:"I",2:"II"};
 const EXPECT={"1L":30,"1R":40,"2L":50,"2R":50};
 
 let db={sheets:{},current:null};
@@ -148,7 +292,11 @@ const save=()=>{try{localStorage.setItem(STORE,JSON.stringify(db))}catch(e){}};
 const $=s=>document.querySelector(s);
 const view=$("#view");
 const mkId=(n,l,t)=>`${n}-${l}${t}`;
-const title=s=>`제${s.num}회 TOPIK ${LEVEL[s.level]} ${TYPE[s.type]}`;
+const title=s=>TEXT.title(s.num,TEXT.level[s.level],TEXT.section[s.type]);
+
+document.title=TEXT.brand;
+$("#brand").textContent=TEXT.brand;
+setLabel($("#newBtn"),"newSheet");
 
 function stats(s){
   let right=0,done=0,got=0,total=0;
@@ -160,30 +308,43 @@ function stats(s){
   return {right,done,got,total,n:s.key.length};
 }
 function scoreText(s,st){
-  return s.pts?`${st.got}<span> / ${st.total}점</span>`:`${st.right}<span> / ${st.n}문항</span>`;
+  return s.pts?TEXT.scorePts(st.got,st.total):TEXT.scoreQs(st.right,st.n);
 }
 
-function twoTap(btn,label,armedLabel,action){
+// Fills a button with its icon / text / both, per BUTTONS above. Keys match ICONS + TEXT.
+function setLabel(btn,key){
+  const txt=TEXT[key], ic=ICONS[key], mode=ic?BUTTONS:"text";
+  btn.classList.toggle("ico",mode==="icon");
+  btn.classList.toggle("lbl-both",mode==="both");
+  btn.innerHTML=mode==="text"?txt:`<span class="ms" aria-hidden="true">${ic}</span>${mode==="both"?txt:""}`;
+  btn.setAttribute("aria-label",txt);btn.title=mode==="icon"?txt:"";
+}
+function twoTap(btn,key,armedKey,action){
   let armed=false,t;
-  btn.textContent=label;
+  setLabel(btn,key);
   btn.onclick=()=>{
-    if(!armed){armed=true;btn.textContent=armedLabel;btn.classList.add("armed");
-      t=setTimeout(()=>{armed=false;btn.textContent=label;btn.classList.remove("armed")},3000);return}
+    if(!armed){armed=true;setLabel(btn,armedKey);btn.classList.add("armed");
+      t=setTimeout(()=>{armed=false;setLabel(btn,key);btn.classList.remove("armed")},3000);return}
     clearTimeout(t);action();
   };
+}
+const plain=html=>html.replace(/<[^>]+>/g,"");
+async function copyText(txt){
+  try{await navigator.clipboard.writeText(txt)}
+  catch(e){const ta=document.createElement("textarea");ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand("copy")}catch(_){}ta.remove()}
 }
 
 /* ---------- side stack ---------- */
 function renderStack(){
   const el=$("#stack");el.innerHTML="";
   const list=Object.values(db.sheets).sort((a,b)=>b.updated-a.updated);
-  if(!list.length){el.innerHTML='<p class="empty">아직 시험지가 없어요.</p>';return}
+  if(!list.length){el.innerHTML=`<p class="empty">${TEXT.emptyStack}</p>`;return}
   list.forEach(s=>{
     const st=stats(s);
     const b=document.createElement("button");
     b.className="item"+(db.current===s.id?" on":"");
-    b.innerHTML=`<b>${s.num}회 ${LEVEL[s.level]} ${TYPE[s.type]}</b>
-      <span>${st.done}/${st.n} · ${s.pts?st.got+"점":st.right+"개 정답"}</span>
+    b.innerHTML=`<span class="l1"><b>${TEXT.cardNum(s.num)}</b><span class="tag">${TEXT.cardTag(TEXT.level[s.level],TEXT.section[s.type])}</span></span>
+      <span class="l2">${TEXT.cardLine(st.done,st.n,st.got,st.right,!!s.pts)}</span>
       <div class="prog"><i style="width:${st.done/st.n*100}%"></i></div>`;
     b.onclick=()=>open(s.id);
     el.appendChild(b);
@@ -192,6 +353,8 @@ function renderStack(){
 
 /* ---------- parsing ---------- */
 function parse(text){
+  const sc=parseShareCode(text);
+  if(sc) return {key:sc.key,pts:sc.pts,ptsBad:false,hadPts:!!sc.pts,share:sc};
   const t=text.replace(/[①②③④]/g,m=>"①②③④".indexOf(m)+1);
   const a=t.match(/ANS\s*:\s*([^\n]*)/i), p=t.match(/PTS\s*:\s*([^\n]*)/i);
   const key=((a?a[1]:t).match(/[1-4]/g)||[]).map(Number);
@@ -202,7 +365,7 @@ function parse(text){
 }
 
 function promptText(level,type,n){
-  return `Attached is an official TOPIK answer key (정답표). Read only the ${TYPE[type]} section for TOPIK ${LEVEL[level]}.
+  return `Attached is an official TOPIK answer key (정답표). Read only the ${KO_SECTION[type]} (${type==="L"?"Listening":"Reading"}) section for TOPIK ${TEXT.level[level]}.
 
 For every question number in order, from 1 to the last question, write the correct answer as a single digit (① = 1, ② = 2, ③ = 3, ④ = 4). Also write the 배점 (points) for each question in the same order.
 
@@ -218,55 +381,58 @@ function renderSetup(){
   db.current=null;save();renderStack();
   view.className="col setup";
   view.innerHTML=`
-    <h1>새 시험지</h1>
-    <div class="field"><label for="num">회차</label>
+    <h1>${TEXT.setupHeading}</h1>
+    <div class="field"><label for="num">${TEXT.examNo}</label>
       <input class="num-in" id="num" type="number" inputmode="numeric" min="1" placeholder="91"></div>
-    <div class="field"><span class="lbl">등급</span>
+    <div class="field"><span class="lbl">${TEXT.levelLabel}</span>
       <div class="seg">
-        <input type="radio" name="lv" id="lv1" value="1"><label for="lv1">TOPIK I</label>
-        <input type="radio" name="lv" id="lv2" value="2" checked><label for="lv2">TOPIK II</label>
+        <input type="radio" name="lv" id="lv1" value="1"><label for="lv1">TOPIK ${TEXT.level[1]}</label>
+        <input type="radio" name="lv" id="lv2" value="2" checked><label for="lv2">TOPIK ${TEXT.level[2]}</label>
       </div></div>
-    <div class="field"><span class="lbl">영역</span>
+    <div class="field"><span class="lbl">${TEXT.sectionLabel}</span>
       <div class="seg">
-        <input type="radio" name="ty" id="tyL" value="L"><label for="tyL">듣기</label>
-        <input type="radio" name="ty" id="tyR" value="R" checked><label for="tyR">읽기</label>
+        <input type="radio" name="ty" id="tyL" value="L"><label for="tyL">${TEXT.section.L}</label>
+        <input type="radio" name="ty" id="tyR" value="R" checked><label for="tyR">${TEXT.section.R}</label>
       </div></div>
     <p class="idline" id="idline"></p>
     <div id="existsBox"></div>
-    <details id="promptBox"><summary>정답표 읽기용 AI 프롬프트</summary>
+    <details id="promptBox"><summary>${TEXT.promptToggle}</summary>
       <pre class="prompt" id="promptPre"></pre>
-      <button class="btn" id="copyBtn">프롬프트 복사</button>
+      <button class="btn" id="copyBtn">${TEXT.copyPrompt}</button>
     </details>
-    <div class="field"><label for="paste">정답 붙여넣기</label>
-      <textarea id="paste" placeholder="ANS: 4414231142322321313414131...&#10;PTS: 2222222222..."></textarea>
+    <div class="field"><label for="paste">${TEXT.pasteLabel}</label>
+      <textarea id="paste"></textarea>
       <div class="parse" id="parse"></div></div>
-    <button class="btn primary" id="create" disabled>시험지 만들기</button>`;
+    <button class="btn primary" id="create" disabled>${TEXT.create}</button>`;
 
   const num=$("#num"),paste=$("#paste"),create=$("#create");
+  paste.placeholder=TEXT.pasteHint;
   const lv=()=>+document.querySelector('input[name=lv]:checked').value;
   const ty=()=>document.querySelector('input[name=ty]:checked').value;
 
   function update(){
+    const sc=parseShareCode(paste.value);
+    if(sc){num.value=sc.num;$("#lv"+sc.level).checked=true;$("#ty"+sc.type).checked=true}
     const n=num.value.trim(), l=lv(), t=ty(), exp=EXPECT[`${l}${t}`];
     const id=n?mkId(n,l,t):null;
-    $("#idline").innerHTML=id?`ID <code>${id}</code> · ${exp}문항 예상`:"회차를 입력하면 ID가 만들어져요.";
+    $("#idline").innerHTML=id?TEXT.idLine(id,exp):TEXT.idHint;
     $("#promptPre").textContent=promptText(l,t,exp);
     const ex=id&&db.sheets[id];
-    $("#existsBox").innerHTML=ex?`<div class="exists"><span>이미 저장된 시험지예요. 새로 붙여넣으면 기록이 지워져요.</span><button class="btn" id="openEx">이어서 하기</button></div>`:"";
+    $("#existsBox").innerHTML=ex?`<div class="exists"><span>${TEXT.exists}</span><button class="btn" id="openEx">${TEXT.continue}</button></div>`:"";
     if(ex) $("#openEx").onclick=()=>open(id);
 
     const pr=$("#parse"), r=parse(paste.value);
     pr.className="parse";
     if(!paste.value.trim()) pr.textContent="";
-    else if(!r.key.length){pr.textContent="정답을 찾지 못했어요. ANS: 줄을 확인해 주세요.";pr.classList.add("warn")}
+    else if(!r.key.length){pr.textContent=TEXT.noAnswers;pr.classList.add("warn")}
     else{
-      const bits=[`${r.key.length}문항 인식`];
-      if(r.pts) bits.push(`배점 포함 (총 ${r.pts.reduce((a,b)=>a+b,0)}점)`);
-      else if(r.ptsBad) bits.push("배점 개수가 안 맞아서 제외");
-      else bits.push("배점 없음 — 문항 수로 채점");
+      const bits=[TEXT.foundQs(r.key.length)];
+      if(r.pts) bits.push(TEXT.withPts(r.pts.reduce((a,b)=>a+b,0)));
+      else if(r.ptsBad) bits.push(TEXT.ptsMismatch);
+      else bits.push(TEXT.noPts);
+      if(r.key.length!==exp) bits.push(TEXT.shouldBe(exp));
       pr.textContent=bits.join(" · ");
       pr.classList.add(r.key.length===exp&&!r.ptsBad?"ok":"warn");
-      if(r.key.length!==exp) pr.textContent+=` · ${exp}문항이어야 해요`;
     }
     create.disabled=!(id&&r.key.length);
   }
@@ -274,10 +440,9 @@ function renderSetup(){
   document.querySelectorAll(".seg input").forEach(e=>e.addEventListener("change",update));
 
   $("#copyBtn").onclick=async()=>{
-    const txt=$("#promptPre").textContent, b=$("#copyBtn");
-    try{await navigator.clipboard.writeText(txt)}
-    catch(e){const ta=document.createElement("textarea");ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand("copy")}catch(_){}ta.remove()}
-    b.textContent="복사됨";setTimeout(()=>b.textContent="프롬프트 복사",1500);
+    const b=$("#copyBtn");
+    await copyText($("#promptPre").textContent);
+    b.textContent=TEXT.copied;setTimeout(()=>b.textContent=TEXT.copyPrompt,1500);
   };
 
   create.onclick=()=>{
@@ -295,30 +460,81 @@ function open(id){
   view.className="col";
   view.innerHTML=`
     <div class="top">
-      <h1>${title(s)}</h1>
+      <div class="titlebar">
+        <h1>${title(s)}</h1>
+        <div class="acts"><button class="small" id="share"></button><button class="small" id="reset"></button><button class="small" id="del"></button></div>
+      </div>
       <div class="bar">
         <div class="score" id="score"></div>
         <div class="tally" id="tally"></div>
-        <div class="acts"><button class="small" id="reset"></button><button class="small" id="del"></button></div>
       </div>
     </div>
     <div class="sheet" id="sheet" role="list"></div>
     <p class="done" id="done"></p>`;
-  twoTap($("#reset"),"처음부터","한 번 더 누르면 초기화",()=>{s.ans={};s.updated=Date.now();save();open(id);scrollTo(0,0)});
-  twoTap($("#del"),"삭제","한 번 더 누르면 삭제",()=>{delete db.sheets[id];save();renderSetup()});
+  setLabel($("#share"),"share");
+  twoTap($("#reset"),"reset","resetConfirm",()=>{s.ans={};s.updated=Date.now();save();open(id);scrollTo(0,0)});
+  twoTap($("#del"),"del","delConfirm",()=>{delete db.sheets[id];save();renderSetup()});
+  $("#share").onclick=()=>shareSheet(s,$("#share"));
   drawRows(s);
 }
 
+/* ---------- sharing (answer key only, never progress) ---------- */
+function shareCode(s){
+  return [s.num,`${s.level}${s.type}`,s.key.join(""),s.pts?s.pts.join(""):""].filter(Boolean).join("-");
+}
+async function shareSheet(s,btn){
+  const code=shareCode(s);
+  // A real link only exists when the page is served over http(s), e.g. GitHub Pages.
+  // In previews/local files there's no address to point to, so hand over the code instead.
+  if(/^https?:$/.test(location.protocol)){
+    const url=location.href.split("#")[0]+"#s="+code;
+    if(navigator.share){try{await navigator.share({title:TEXT.shareTitle(plain(title(s))),url});return}catch(e){if(e.name==="AbortError")return}}
+    await copyText(url);setLabel(btn,"linkCopied");
+  }else{
+    await copyText(code);setLabel(btn,"codeCopied");
+  }
+  setTimeout(()=>setLabel(btn,"share"),1500);
+}
+function parseShareCode(str){
+  const m=String(str).match(/(\d+)-([12])([LR])-([1-4]+)(?:-(\d+))?/); if(!m) return null;
+  const [,num,lv,ty,k,p]=m;
+  const pts=p&&p.length===k.length?[...p].map(Number):null;
+  return {num,level:+lv,type:ty,key:[...k].map(Number),pts};
+}
+function readShare(){
+  const m=location.hash.match(/^#s=([^&]+)/);
+  return m?parseShareCode(decodeURIComponent(m[1])):null;
+}
+function clearHash(){history.replaceState(null,"",location.pathname+location.search)}
+function renderImport(sh){
+  const id=mkId(sh.num,sh.level,sh.type), ex=db.sheets[id], prev=db.current;
+  db.current=null;renderStack();
+  view.className="col import";
+  view.innerHTML=`<h1>${title(sh)}</h1>
+    <p>${TEXT.sharedInfo(sh.key.length,sh.pts?sh.pts.reduce((a,b)=>a+b,0):0)}${ex?"<br>"+TEXT.sharedExists:""}</p>
+    <div class="row-btns">${ex
+      ?`<button class="btn primary" id="openEx">${TEXT.openExisting}</button><button class="small" id="replace"></button>`
+      :`<button class="btn primary" id="add">${TEXT.addMine}</button>`}
+      <button class="btn" id="cancel">${TEXT.cancel}</button></div>`;
+  const add=()=>{db.sheets[id]={id,num:sh.num,level:sh.level,type:sh.type,key:sh.key,pts:sh.pts,ans:{},created:Date.now(),updated:Date.now()};save();clearHash();open(id)};
+  if(ex){$("#openEx").onclick=()=>{clearHash();open(id)};twoTap($("#replace"),"replace","replaceConfirm",add)}
+  else $("#add").onclick=add;
+  $("#cancel").onclick=()=>{clearHash();prev&&db.sheets[prev]?open(prev):renderSetup()};
+}
+
+// ○ and ✕ drawn as matching outlines, so they share one stroke thickness (--mark-stroke)
+const MARK_O='<svg class="mk o" viewBox="0 0 24 24" role="img" aria-label="correct"><circle cx="12" cy="12" r="8.5"/></svg>';
+const MARK_X='<svg class="mk x" viewBox="0 0 24 24" role="img" aria-label="wrong"><path d="M5.5 5.5l13 13M18.5 5.5l-13 13"/></svg>';
 function drawRows(s){
   const sheet=$("#sheet");sheet.innerHTML="";
   s.key.forEach((k,i)=>{
     const q=i+1, a=s.ans[q];
-    const row=document.createElement("div");row.className="row";row.setAttribute("role","listitem");
-    row.innerHTML=`<div class="num">${q}</div><div class="bubbles"></div>`;
+    const row=document.createElement("div");row.className="row"+(a!==undefined?" marked":"");row.setAttribute("role","listitem");
+    row.innerHTML=`<div class="num">${String(q).padStart(2,"0")}</div><div class="bubbles"></div>`;
     const bb=row.querySelector(".bubbles");
     for(let c=1;c<=4;c++){
       const b=document.createElement("button");
-      b.className="b";b.textContent=c;b.setAttribute("aria-label",`${q}번 ${c}번 선택`);
+      b.className="b";b.textContent=c;b.setAttribute("aria-label",`Q${q}: ${c}`);
       if(a!==undefined){
         b.disabled=true;
         if(a===c&&c===k) b.classList.add("right");
@@ -329,16 +545,16 @@ function drawRows(s){
       bb.appendChild(b);
     }
     let cell;
-    if(a===undefined){cell=document.createElement("button");cell.textContent="보기";cell.onclick=()=>mark(s,q,0)}
-    else{cell=document.createElement("div");
-      cell.innerHTML=a===0?"확인":a===k?'<span class="mk o">○</span>':'<span class="mk x">✕</span>'}
-    cell.className="side-cell";
+    if(a===undefined){cell=document.createElement("button");setLabel(cell,"peek");cell.onclick=()=>mark(s,q,0)}
+    else if(a===0){cell=document.createElement("div");setLabel(cell,"peeked")}
+    else{cell=document.createElement("div");cell.innerHTML=a===k?MARK_O:MARK_X}
+    cell.classList.add("side-cell"); if(a===0) cell.classList.add("peeked");
     row.appendChild(cell);sheet.appendChild(row);
   });
   const st=stats(s);
   $("#score").innerHTML=scoreText(s,st);
-  $("#tally").textContent=`${st.done} / ${st.n} 확인`;
-  $("#done").textContent=st.done===st.n?`끝! ${st.right}/${st.n} 정답${s.pts?` · ${st.got}점`:""}`:"";
+  $("#tally").textContent=TEXT.tally(st.done,st.n);
+  $("#done").textContent=st.done===st.n?TEXT.finished(st.right,st.n,st.got,!!s.pts):"";
 }
 
 function mark(s,q,c){
@@ -347,7 +563,9 @@ function mark(s,q,c){
 }
 
 $("#newBtn").onclick=renderSetup;
-db.current&&db.sheets[db.current]?open(db.current):renderSetup();
+const shared=readShare();
+if(shared) renderImport(shared);
+else db.current&&db.sheets[db.current]?open(db.current):renderSetup();
 </script>
 </body>
 </html>
