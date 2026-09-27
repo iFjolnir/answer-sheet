@@ -104,6 +104,20 @@ main{min-width:0;padding:0 20px 56px}
 .seg input:checked + label{background:var(--ink);color:var(--bg)}
 .seg input:focus-visible + label{outline:2px solid var(--ink);outline-offset:-3px}
 .idline{font-size:.88rem;color:var(--muted);margin:-4px 0 18px}
+.lib h2{font-size:.9rem;font-weight:600;margin:0 0 10px}
+.libgrid{display:grid;grid-template-columns:48px repeat(4,minmax(0,1fr));gap:6px;align-items:center}
+.libnum{font-weight:600;font-size:.9rem;font-variant-numeric:tabular-nums}
+.chip{border:1px solid var(--rule-strong);background:transparent;border-radius:8px;padding:8px 2px;font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip:hover{background:var(--soft)}
+.chip.have{background:var(--soft);border-color:var(--ink);font-weight:600}
+.chip.upd{border-color:var(--fix)}
+.libwarn{font-size:.8rem;color:var(--fix);margin:12px 0 0}
+.libwarn code{display:block;word-break:break-all;font-size:.72rem;margin-top:4px;color:var(--muted)}
+.or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.8rem;margin:24px 0 6px}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--rule)}
+.notice{border:1px solid var(--fix);border-radius:8px;padding:12px;margin:12px 0;font-size:.85rem;display:flex;flex-direction:column;gap:10px}
+.notice .row-btns{display:flex;gap:8px;flex-wrap:wrap}
+.upd-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--fix);margin-left:6px;vertical-align:middle}
 .idline code{font-family:inherit;font-weight:800;color:var(--ink)}
 .exists{background:var(--sheet);border:1px solid var(--rule-strong);border-radius:8px;padding:12px;font-size:.88rem;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .btn{background:transparent;border:1px solid var(--rule-strong);border-radius:8px;padding:7px 12px;font-size:.85rem}
@@ -200,6 +214,7 @@ button.side-cell:hover{color:var(--peek-hover)}
    ICONS: Google Material Symbols names. If you swap one, also add the new
    name to the icon_names=… list in the <link> at the top (alphabetical). */
 const BUTTONS="icon";
+const LIBRARY_URL="library.json";   // answer bank, sitting next to index.html
 const ICONS={
   newSheet:"add_2",
   share:"share",          linkCopied:"check",      codeCopied:"check",
@@ -276,6 +291,17 @@ const TEXT={
   replaceConfirm:"Replace?",
   addMine:      "Add as new",
   cancel:       "Cancel",
+
+  // library (answer bank)
+  libHeading:   "From the library",
+  libOwn:       "or add your own",
+  libSkipped:   (n) => `${n} line${n===1?"":"s"} in library.json couldn't be read and ${n===1?"was":"were"} skipped:`,
+  libBroken:    "library.json couldn't be read at all — check for a stray or missing comma.",
+  keyUpdated:   (n) => n
+                  ? `This answer key was corrected in the library — ${n} answer${n===1?"":"s"} changed. Your marks stay and get re-checked.`
+                  : `The library version of this key has points added or corrected. Your marks stay.`,
+  keyApply:     "Update key",
+  keyKeep:      "Keep mine",
 };
 /* ═════════════════════ end of wording ═════════════════════ */
 
@@ -334,6 +360,76 @@ async function copyText(txt){
   catch(e){const ta=document.createElement("textarea");ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand("copy")}catch(_){}ta.remove()}
 }
 
+/* ---------- library ---------- */
+let LIB=null, LIB_BAD=[], LIB_BROKEN=false;
+const sig=(key,pts)=>key.join("")+"|"+(pts?pts.join(""):"");
+async function loadLibrary(){
+  if(!/^https?:$/.test(location.protocol)) return;       // previews / local files can't fetch it
+  let j;
+  try{const r=await fetch(LIBRARY_URL,{cache:"no-cache"}); if(!r.ok) return; j=await r.json()}
+  catch(e){LIB_BROKEN=true;LIB={};return onLibrary()}
+  LIB={};LIB_BAD=[];
+  (j.sheets||[]).forEach(line=>{
+    const code=String(line).trim().replace(/^.*#s=/,"");
+    const m=code.match(/^(\d+)-([12])([LR])-([1-4]+)(?:-(\d+))?$/);
+    const ok=m&&m[4].length===EXPECT[m[2]+m[3]]&&(!m[5]||m[5].length===m[4].length);
+    if(!ok){LIB_BAD.push(line);return}
+    const sc=parseShareCode(code);
+    LIB[mkId(sc.num,sc.level,sc.type)]=sc;
+  });
+  onLibrary();
+}
+// Returns the library entry if it differs from this sheet's key (and wasn't dismissed)
+function libUpdate(s){
+  const L=LIB&&LIB[s.id]; if(!L) return null;
+  const libSig=sig(L.key,L.pts);
+  return libSig===sig(s.key,s.pts)||s.ignoreSig===libSig?null:L;
+}
+function onLibrary(){
+  renderStack();
+  if($("#libBox")) renderLibBox();
+  if(db.current&&db.sheets[db.current]&&$("#updBox")) renderUpdate(db.sheets[db.current]);
+}
+function addFromLib(id){
+  if(db.sheets[id]) return open(id);
+  const L=LIB[id];
+  db.sheets[id]={id,num:L.num,level:L.level,type:L.type,key:L.key,pts:L.pts,ans:{},lib:true,created:Date.now(),updated:Date.now()};
+  save();open(id);
+}
+function renderLibBox(){
+  const box=$("#libBox"); if(!box) return;
+  const ids=Object.keys(LIB||{});
+  if(!ids.length&&!LIB_BROKEN){box.innerHTML="";return}
+  const nums=[...new Set(ids.map(id=>LIB[id].num))].sort((a,b)=>b-a);
+  const cols=[[1,"L"],[1,"R"],[2,"L"],[2,"R"]];
+  let html=`<div class="lib"><h2>${TEXT.libHeading}</h2><div class="libgrid">`;
+  nums.forEach(n=>{
+    html+=`<div class="libnum">${TEXT.cardNum(n)}</div>`;
+    cols.forEach(([l,t])=>{
+      const id=mkId(n,l,t);
+      if(!LIB[id]){html+="<div></div>";return}
+      const mine=db.sheets[id], up=mine&&libUpdate(mine);
+      html+=`<button class="chip${mine?" have":""}${up?" upd":""}" data-id="${id}">${TEXT.cardTag(TEXT.level[l],TEXT.section[t])}</button>`;
+    });
+  });
+  html+="</div>";
+  if(LIB_BROKEN) html+=`<p class="libwarn">${TEXT.libBroken}</p>`;
+  else if(LIB_BAD.length) html+=`<p class="libwarn">${TEXT.libSkipped(LIB_BAD.length)}${LIB_BAD.map(b=>`<code>${String(b).replace(/</g,"&lt;")}</code>`).join("")}</p>`;
+  html+=`<div class="or">${TEXT.libOwn}</div></div>`;
+  box.innerHTML=html;
+  box.querySelectorAll(".chip").forEach(c=>c.onclick=()=>addFromLib(c.dataset.id));
+}
+function renderUpdate(s){
+  const box=$("#updBox"); if(!box) return;
+  const L=libUpdate(s);
+  if(!L){box.innerHTML="";return}
+  const changed=L.key.filter((k,i)=>k!==s.key[i]).length+Math.abs(L.key.length-s.key.length);
+  box.innerHTML=`<div class="notice"><span>${TEXT.keyUpdated(changed)}</span>
+    <div class="row-btns"><button class="btn primary" id="updApply">${TEXT.keyApply}</button><button class="btn" id="updKeep">${TEXT.keyKeep}</button></div></div>`;
+  $("#updApply").onclick=()=>{s.key=L.key;s.pts=L.pts;s.lib=true;delete s.ignoreSig;save();open(s.id)};
+  $("#updKeep").onclick=()=>{s.ignoreSig=sig(L.key,L.pts);save();open(s.id)};
+}
+
 /* ---------- side stack ---------- */
 function renderStack(){
   const el=$("#stack");el.innerHTML="";
@@ -343,7 +439,7 @@ function renderStack(){
     const st=stats(s);
     const b=document.createElement("button");
     b.className="item"+(db.current===s.id?" on":"");
-    b.innerHTML=`<span class="l1"><b>${TEXT.cardNum(s.num)}</b><span class="tag">${TEXT.cardTag(TEXT.level[s.level],TEXT.section[s.type])}</span></span>
+    b.innerHTML=`<span class="l1"><b>${TEXT.cardNum(s.num)}</b><span class="tag">${TEXT.cardTag(TEXT.level[s.level],TEXT.section[s.type])}${libUpdate(s)?'<span class="upd-dot"></span>':""}</span></span>
       <span class="l2">${TEXT.cardLine(st.done,st.n,st.got,st.right,!!s.pts)}</span>
       <div class="prog"><i style="width:${st.done/st.n*100}%"></i></div>`;
     b.onclick=()=>open(s.id);
@@ -382,6 +478,7 @@ function renderSetup(){
   view.className="col setup";
   view.innerHTML=`
     <h1>${TEXT.setupHeading}</h1>
+    <div id="libBox"></div>
     <div class="field"><label for="num">${TEXT.examNo}</label>
       <input class="num-in" id="num" type="number" inputmode="numeric" min="1" placeholder="91"></div>
     <div class="field"><span class="lbl">${TEXT.levelLabel}</span>
@@ -450,7 +547,8 @@ function renderSetup(){
     db.sheets[id]={id,num:n,level:l,type:t,key:r.key,pts:r.pts,ans:{},created:Date.now(),updated:Date.now()};
     save();open(id);
   };
-  update();num.focus();
+  renderLibBox();
+  update();if(!LIB||!Object.keys(LIB).length) num.focus();
 }
 
 /* ---------- sheet view ---------- */
@@ -469,12 +567,14 @@ function open(id){
         <div class="tally" id="tally"></div>
       </div>
     </div>
+    <div id="updBox"></div>
     <div class="sheet" id="sheet" role="list"></div>
     <p class="done" id="done"></p>`;
   setLabel($("#share"),"share");
   twoTap($("#reset"),"reset","resetConfirm",()=>{s.ans={};s.updated=Date.now();save();open(id);scrollTo(0,0)});
   twoTap($("#del"),"del","delConfirm",()=>{delete db.sheets[id];save();renderSetup()});
   $("#share").onclick=()=>shareSheet(s,$("#share"));
+  renderUpdate(s);
   drawRows(s);
 }
 
@@ -566,6 +666,7 @@ $("#newBtn").onclick=renderSetup;
 const shared=readShare();
 if(shared) renderImport(shared);
 else db.current&&db.sheets[db.current]?open(db.current):renderSetup();
+loadLibrary();
 </script>
 </body>
 </html>
